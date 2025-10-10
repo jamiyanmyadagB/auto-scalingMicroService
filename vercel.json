@@ -2,31 +2,23 @@
   "version": 2,
   "builds": [
     {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    },
+    {
       "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/auth/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/users/(.*)",
-      "dest": "/api/index.js"
-    },
-    {
-      "src": "/products/(.*)",
+      "src": "/api/(.*)",
       "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "/api/index.js"
+      "dest": "/frontend/$1"
     }
-  ],
-  "env": {
-    "AUTH_SERVICE_URL": "https://auto-scaling-microservice-auth.vercel.app",
-    "USER_SERVICE_URL": "https://auto-scaling-microservice-user.vercel.app", 
-    "PRODUCT_SERVICE_URL": "https://auto-scaling-microservice-product.vercel.app"
-  }
+  ]
 }
