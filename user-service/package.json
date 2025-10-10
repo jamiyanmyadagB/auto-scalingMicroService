@@ -1,0 +1,15 @@
+{
+  "name": "user-service-vercel",
+  "version": "1.0.0",
+  "description": "User management microservice for Vercel",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": ["microservice", "user", "vercel"],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/auth/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/users/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/products/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/api/index.js"
+    }
+  ],
+  "env": {
+    "AUTH_SERVICE_URL": "https://auto-scaling-microservice-auth.vercel.app",
+    "USER_SERVICE_URL": "https://auto-scaling-microservice-user.vercel.app", 
+    "PRODUCT_SERVICE_URL": "https://auto-scaling-microservice-product.vercel.app"
+  }
+}
