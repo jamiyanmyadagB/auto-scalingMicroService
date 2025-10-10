@@ -1,0 +1,15 @@
+{
+  "name": "auto-scale-microservices",
+  "version": "1.0.0",
+  "description": "Auto-scaling microservices for Vercel",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "keywords": ["microservices", "vercel", "auto-scaling"],
+  "author": "",
+  "license": "MIT"
+}
