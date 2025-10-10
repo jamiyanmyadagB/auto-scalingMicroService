@@ -18,9 +18,9 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     port: process.env.PORT || 3000,
     routes: {
-      '/auth': 'auth-service',
-      '/users': 'user-service',
-      '/products': 'product-service'
+      '/api/auth': 'auth-service',
+      '/api/users': 'user-service',
+      '/api/products': 'product-service'
     }
   });
 });
@@ -263,7 +263,7 @@ app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found',
     message: 'The requested route does not exist',
-    availableRoutes: ['/auth', '/users', '/products']
+    availableRoutes: ['/api/auth', '/api/users', '/api/products']
   });
 });
 
