@@ -1,0 +1,111 @@
+name: Build and Deploy Microservices
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: docker.io
+  USERNAME: ${{ secrets.DOCKER_USERNAME }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies and test
+      run: |
+        cd services/auth-service && npm ci
+        cd ../user-service && npm ci
+        cd ../product-service && npm ci
+        cd ../../gateway && npm ci
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    strategy:
+      matrix:
+        service: [auth-service, user-service, product-service, api-gateway]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.USERNAME }}/${{ matrix.service }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./${{ matrix.service == 'api-gateway' && 'gateway' || format('services/{0}', matrix.service) }}/Dockerfile
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+  deploy-k8s:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      with:
+        version: 'v1.28.0'
+    
+    - name: Configure kubectl
+      run: |
+        mkdir -p $HOME/.kube
+        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > $HOME/.kube/config
+        chmod 600 $HOME/.kube/config
+    
+    - name: Update image tags in Kubernetes manifests
+      run: |
+        sed -i 's|yourusername/auth-service:latest|${{ env.REGISTRY }}/${{ env.USERNAME }}/auth-service:${{ github.sha }}|g' k8s/auth-deployment.yaml
+        sed -i 's|yourusername/user-service:latest|${{ env.REGISTRY }}/${{ env.USERNAME }}/user-service:${{ github.sha }}|g' k8s/user-deployment.yaml
+        sed -i 's|yourusername/product-service:latest|${{ env.REGISTRY }}/${{ env.USERNAME }}/product-service:${{ github.sha }}|g' k8s/product-deployment.yaml
+        sed -i 's|yourusername/api-gateway:latest|${{ env.REGISTRY }}/${{ env.USERNAME }}/api-gateway:${{ github.sha }}|g' k8s/gateway.yaml
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -f k8s/
+        kubectl rollout status deployment/auth-service
+        kubectl rollout status deployment/user-service
+        kubectl rollout status deployment/product-service
+        kubectl rollout status deployment/api-gateway
+    
+    - name: Verify deployment
+      run: |
+        kubectl get pods -l app=auth-service
+        kubectl get pods -l app=user-service
+        kubectl get pods -l app=product-service
+        kubectl get pods -l app=api-gateway
+        kubectl get hpa
